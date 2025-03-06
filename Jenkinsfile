@@ -1,18 +1,61 @@
-pipeline{
+pipeline {
     agent any
-    environment{
-	staging_server=54.196.240.97      
+
+    environment {
+        IMAGE_NAME = "php-website"
+        CONTAINER_NAME = "php-container"
+        REPO_URL = "https://github.com/kapil12333/Docker-PHP.git"
     }
-    stages{
-	stage('Deploy to Remote)
-	    steps{
-		sh '''
-  		    for fileName in 'find ${WORKSPACE} -type f -mmin -10 |egrep -v ".git | grep -v "Jenkinsfile"'
-		    do
-      			fil=$(echo ${fileName} | sed 's/'"${JOB_NAME}"'/ /' |awk {'print $2'}0
-			'scp -r ${WORKSPACE}${fil} root@$(staging_server):/var/www/html/${fil}
-   		    done
-  		'''
-	    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: "${REPO_URL}"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_NAME} ."
+                }
+            }
+        }
+
+        stage('Stop Existing Container') {
+            steps {
+                script {
+                    sh """
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+                    """
+                }
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                script {
+                    sh "docker run -d -p 8080:80 --name ${CONTAINER_NAME} ${IMAGE_NAME}"
+                }
+            }
+        }
+
+        stage('Cleanup Unused Docker Resources') {
+            steps {
+                script {
+                    sh "docker system prune -f"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment Successful! Your PHP site is running at http://your-server-ip:8080"
+        }
+        failure {
+            echo "Build or Deployment Failed!"
+        }
     }
 }
