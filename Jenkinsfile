@@ -52,7 +52,7 @@ pipeline {
 
     post {
         success {
-            echo "Deployment Successful! Your PHP site is running at http://your-server-ip:8080"
+            echo "Deployment Successful! Your PHP site is running at http://15.156.124.57:8080"
         }
         failure {
             echo "Build or Deployment Failed!"
